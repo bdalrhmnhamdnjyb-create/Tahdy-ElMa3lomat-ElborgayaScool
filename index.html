@@ -50,6 +50,16 @@ textarea{width:100%;min-height:110px;font:inherit;padding:12px;border-radius:12p
 .rev{border-top:1px solid var(--line);padding:10px 0}
 .rev b{color:var(--ok)}
 .hide{display:none}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:380px){.sg{grid-template-columns:1fr}}
+.sc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.sc .qq{font-weight:700}
+.sc .a{display:none;color:var(--ok);font-weight:800;border-top:1px dashed var(--line);padding-top:8px;width:100%}
+.sc.open .a{display:block}.sc.open .tap{display:none}
+.sc .tap{color:var(--mute)}
+.sc.one{min-height:200px;margin-bottom:12px}
+.sc.one .q{margin:6px 0}
+.sc.one .a{font-size:20px}
 footer{text-align:center;color:var(--mute);font-size:13px;padding:6px 16px 26px;direction:ltr}
 footer span{direction:rtl;unicode-bidi:isolate}
 #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50}
@@ -68,7 +78,7 @@ const ICON={1:'⚽',2:'🏛️',3:'🌍',4:'📚',5:'💡',6:'💻',7:'🔬',8:'
 function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
 function clear(){app.replaceChildren()}
 QS.forEach((q,i)=>q.id=i+1);
-let cfg={n:10,field:0,mode:'mcq',from:1,to:QS.length}, quiz=[], idx=0, score={mcq:[0,0],txt:[0,0]}, missed=[];
+let cfg={n:10,all:false,field:0,mode:'mcq',from:1,to:QS.length}, quiz=[], idx=0, score={mcq:[0,0],txt:[0,0]}, missed=[];
 
 function chips(parent,items,isOn,onPick,cls){
   const box=el('div',cls||'chips');
@@ -78,47 +88,101 @@ function chips(parent,items,isOn,onPick,cls){
 function setup(){
   clear();
   app.append(el('h1',0,'🧠 تحدي المعلومات'),el('p','sub','اختار إعدادات التحدي وابدأ'));
-  let s=el('div','sec');s.append(el('h2',0,'كام سؤال؟'));
-  const total=()=>cfg.field?QS.filter(q=>q.c===cfg.field).length:QS.length;
-  const num=el('input');num.type='number';num.min=1;num.max=500;num.value=cfg.n;
-  const nums=[5,10,20,30,50].map(v=>({label:String(v),v}));
-  chips(s,nums,i=>cfg.n===i.v,i=>{cfg.n=i.v;num.value=i.v;if(typeof upd==='function')upd()});
-  const r=el('div','row');r.style.alignItems='center';r.append(el('span',0,'أو اكتب رقم:'),num);s.append(r);
-  num.oninput=()=>{cfg.n=Math.max(1,parseInt(num.value)||1);[...s.querySelectorAll('.chip')].forEach(c=>c.classList.remove('on'))};
-  app.append(s);
-  s=el('div','sec');s.append(el('h2',0,'عاوز مجال إيه؟'));
+  const pool=()=>QS.filter(q=>q.id>=cfg.from&&q.id<=cfg.to&&(!cfg.field||q.c===cfg.field));
+  const cntBtns=[],hint=el('div','sub');hint.style.margin='10px 0 0';
+  const num=el('input');num.type='number';num.min=1;num.max=QS.length;
+  function upd(){
+    const a=pool().length,n=cfg.all?a:Math.min(cfg.n,a);
+    cntBtns.forEach(b=>b.el.classList.toggle('on',b.all?cfg.all:(!cfg.all&&cfg.n===b.v)));
+    num.value=cfg.all?a:cfg.n;
+    hint.textContent=a?('المتاح: '+a+' سؤال — هتتسأل في '+n+(n===a?' (كلهم)':'')):'مفيش أسئلة بالاختيارات دي، غيّر المجال أو الأرقام';
+  }
+  // 1) المجال
+  let s=el('div','sec');s.append(el('h2',0,'١) عاوز مجال إيه؟'));
   const fields=[{label:'🎲 كل المجالات',v:0}].concat(Object.keys(CATS).map(k=>({label:ICON[k]+' '+CATS[k],v:+k})));
   chips(s,fields,i=>cfg.field===i.v,i=>{cfg.field=i.v;upd()},'grid');
   app.append(s);
-  s=el('div','sec');s.append(el('h2',0,'من سؤال رقم كام لسؤال رقم كام؟ (حسب ترتيب الملف)'));
+  // 2) النطاق
+  s=el('div','sec');s.append(el('h2',0,'٢) من سؤال رقم كام لسؤال رقم كام؟ (حسب ترتيب الملف)'));
   const f1=el('input'),f2=el('input');
   [f1,f2].forEach(x=>{x.type='number';x.min=1;x.max=QS.length});
   f1.value=cfg.from;f2.value=cfg.to;
   const rr=el('div','row');rr.style.alignItems='center';rr.append(el('span',0,'من'),f1,el('span',0,'إلى'),f2);s.append(rr);
-  const hint=el('div','sub');hint.style.margin='10px 0 0';s.append(hint);
-  const pool=()=>QS.filter(q=>q.id>=cfg.from&&q.id<=cfg.to&&(!cfg.field||q.c===cfg.field));
-  function upd(){
-    const a=pool().length;
-    hint.textContent=a?('المتاح في النطاق ده: '+a+' سؤال'+(cfg.n>a?' (هتتسأل '+a+' بس)':'')):'مفيش أسئلة في النطاق ده، غيّر الأرقام أو المجال';
-  }
-  const rd=()=>{let a=parseInt(f1.value)||1,b=parseInt(f2.value)||QS.length;if(a>b)[a,b]=[b,a];cfg.from=Math.max(1,a);cfg.to=Math.min(QS.length,b);upd()};
+  const rd=()=>{let a=parseInt(f1.value)||1,b=parseInt(f2.value)||QS.length;if(a>b)[a,b]=[b,a];cfg.from=Math.max(1,a);cfg.to=Math.min(QS.length,b);cfg.all=true;upd()};
   f1.oninput=f2.oninput=rd;
-  num.addEventListener('input',upd);
-  s.querySelectorAll('.chip');
+  s.append(el('div','sub','لما تحدد نطاق، هيتعرض عليك كل الأسئلة اللي فيه (تقدر تقلل العدد من الخطوة اللي بعدها).'));
+  s.lastChild.style.margin='8px 0 0';
   app.append(s);
-  s=el('div','sec');s.append(el('h2',0,'نوع الأسئلة'));
+  // 3) العدد
+  s=el('div','sec');s.append(el('h2',0,'٣) كام سؤال؟'));
+  const box=el('div','chips');
+  [5,10,20,30,50].map(v=>({label:String(v),v})).concat([{label:'الكل',all:true}]).forEach(it=>{
+    const b=el('button','chip',it.label);
+    b.onclick=()=>{if(it.all)cfg.all=true;else{cfg.all=false;cfg.n=it.v}upd()};
+    cntBtns.push({el:b,all:it.all,v:it.v});box.append(b);
+  });
+  s.append(box);
+  const r=el('div','row');r.style.alignItems='center';r.append(el('span',0,'أو اكتب رقم:'),num);s.append(r);
+  num.oninput=()=>{cfg.all=false;cfg.n=Math.max(1,parseInt(num.value)||1);const a=pool().length,n=Math.min(cfg.n,a);cntBtns.forEach(b=>b.el.classList.remove('on'));hint.textContent=a?('المتاح: '+a+' سؤال — هتتسأل في '+n+(n===a?' (كلهم)':'')):'مفيش أسئلة بالاختيارات دي'};
+  s.append(hint);
+  app.append(s);
+  // 4) النوع
+  s=el('div','sec');s.append(el('h2',0,'٤) نوع الأسئلة'));
   chips(s,[{label:'اختياري',v:'mcq'},{label:'كتابة',v:'txt'},{label:'الاتنين مع بعض',v:'mix'}],i=>cfg.mode===i.v,i=>{cfg.mode=i.v});
   app.append(s);
   upd();
-  const go=el('button','btn','يلا نبدأ');
-  go.onclick=()=>{
-    const P=pool();if(!P.length){upd();return}
-    const n=Math.min(cfg.n,P.length);
-    quiz=sh(P).slice(0,n).map(q=>({q,t:cfg.mode==='mix'?(Math.random()<.5?'mcq':'txt'):cfg.mode}));
-    idx=0;score={mcq:[0,0],txt:[0,0]};missed=[];show();
-  };
-  app.append(go);
+  const pick=()=>{const P=pool();if(!P.length){upd();return null}return sh(P).slice(0,cfg.all?P.length:Math.min(cfg.n,P.length))};
+  const go=el('button','btn','يلا نبدأ الاختبار');
+  go.onclick=()=>{const L=pick();if(L)startExam(L)};
+  const st=el('button','btn ghost','📖 يلا ذاكر الأول');st.style.marginTop='10px';
+  st.onclick=()=>{const L=pick();if(L){L.sort((x,y)=>x.id-y.id);study(L,'cards')}};
+  app.append(go,st);
   const ft=el('footer');ft.append('© ',el('span',0,'جميع الحقوق محفوظة'),' — Abdalrahman Hamed');app.append(ft);
+}
+
+function startExam(L){
+  quiz=sh(L).map(q=>({q,t:cfg.mode==='mix'?(Math.random()<.5?'mcq':'txt'):cfg.mode}));
+  idx=0;score={mcq:[0,0],txt:[0,0]};missed=[];show();
+}
+function study(L,style){
+  clear();
+  const all=L.length>=QS.length;
+  app.append(el('h1',0,'📖 مذاكرة'),el('p','sub',L.length+' سؤال'+(all?' — كل الأسئلة':'')+' — دول نفس الأسئلة اللي هتتسأل فيها'));
+  const s=el('div','sec');s.append(el('h2',0,'طريقة العرض'));
+  chips(s,[{label:'🃏 بطاقات',v:'cards'},{label:'📜 قائمة',v:'list'},{label:'👆 بطاقة بطاقة',v:'one'}],i=>style===i.v,i=>{style=i.v;draw()});
+  app.append(s);
+  const box=el('div');app.append(box);
+  const badge=q=>el('span','badge',ICON[q.c]+' '+CATS[q.c]+' · #'+q.id);
+  let cur=0;
+  function draw(){
+    box.replaceChildren();
+    if(style==='cards'){
+      const tg=el('button','btn ghost','إظهار كل الإجابات');tg.style.marginBottom='12px';
+      let on=false;
+      const g=el('div','sg');
+      const cs=L.map(q=>{const c=el('div','sc');c.append(badge(q),el('div','qq',q.q),el('div','a',q.a),el('small','tap','اضغط لإظهار الإجابة'));c.onclick=()=>c.classList.toggle('open');g.append(c);return c});
+      tg.onclick=()=>{on=!on;cs.forEach(c=>c.classList.toggle('open',on));tg.textContent=on?'إخفاء كل الإجابات':'إظهار كل الإجابات'};
+      box.append(tg,g);
+    }else if(style==='list'){
+      L.forEach((q,i)=>{const d=el('div','sec');d.append(badge(q),el('div','q',(i+1)+'. '+q.q),el('div','box right',q.a));box.append(d)});
+    }else{
+      const c=el('div','sec sc one');
+      const nav=el('div','row');
+      const pv=el('button','btn ghost','→ السابق'),nx=el('button','btn','التالي ←');
+      nav.append(pv,nx);
+      const render=()=>{
+        const q=L[cur];c.className='sec sc one';c.replaceChildren(el('div','top',(cur+1)+' من '+L.length),badge(q),el('div','q',q.q),el('div','a',q.a),el('small','tap','اضغط على البطاقة لإظهار الإجابة'));
+        pv.disabled=cur===0;nx.disabled=cur===L.length-1;
+      };
+      c.onclick=()=>c.classList.toggle('open');
+      pv.onclick=()=>{cur--;render()};nx.onclick=()=>{cur++;render()};
+      render();box.append(c,nav);
+    }
+  }
+  draw();
+  const go=el('button','btn','✅ خلصت مذاكرة، ابدأ الاختبار');go.style.marginTop='18px';go.onclick=()=>startExam(L);
+  const bk=el('button','btn ghost','↩ رجوع للإعدادات');bk.style.marginTop='10px';bk.onclick=setup;
+  app.append(go,bk);
 }
 function header(){
   const it=quiz[idx];
