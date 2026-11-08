@@ -50,10 +50,28 @@ textarea{width:100%;min-height:110px;font:inherit;padding:12px;border-radius:12p
 .rev{border-top:1px solid var(--line);padding:10px 0}
 .rev b{color:var(--ok)}
 .hide{display:none}
-.dm{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center}
+.adminlink{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+.adm{position:fixed;inset:0;z-index:500;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);overflow:hidden}
+.admbox{margin:auto;width:100%;max-width:380px;padding:20px;display:flex;flex-direction:column;gap:10px}
+.admbox h2{margin:0 0 6px;text-align:center}
+.admtop{display:flex;align-items:center;gap:8px;padding:10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.admtop .btn{width:auto;padding:8px 12px;font-size:14px;margin:0}
+.admtop b{flex:1;min-width:120px}
+.admbody{flex:1;overflow:auto;padding:12px;max-width:640px;width:100%;margin:0 auto}
+.admbar{margin-bottom:10px}
+.ain{width:100%;font:inherit;font-size:16px;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);color:var(--ink)}
+.admf{display:block;margin-bottom:10px}.admf span{display:block;color:var(--mute);font-size:13px;margin-bottom:3px}
+.admrow{display:block;width:100%;text-align:right;font:inherit;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
+.admrow.mod{border-color:var(--acc);background:var(--bg)}
+.admrow small{display:block;color:var(--ok);margin-top:2px}
+.amsg{min-height:20px;font-size:14px;color:var(--bad);margin-top:6px}.amsg.ok{color:var(--ok)}
+.admgh{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.admgh h2{font-size:15px;margin:0}
+.shx{max-height:92vh;overflow:auto}
+.dm{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center}
 .shx{background:var(--card);color:var(--ink);width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:16px;display:flex;flex-direction:column;gap:10px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 16px)}
 .shx h2{margin:0 0 4px;font-size:17px;text-align:center}
-.toast{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);z-index:300;max-width:480px;margin:0 auto;background:var(--ink);color:var(--bg);padding:12px 14px;border-radius:12px;text-align:center;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.toast{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);z-index:700;max-width:480px;margin:0 auto;background:var(--ink);color:var(--bg);padding:12px 14px;border-radius:12px;text-align:center;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25)}
 .tm{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-weight:700}
 .tbar{flex:1;height:8px;background:var(--line);border-radius:9px;overflow:hidden}
 .tbar i{display:block;height:100%;background:var(--acc);transition:width 1s linear}
@@ -98,6 +116,8 @@ function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!=nu
 function clear(){app.replaceChildren()}
 QS.forEach((q,i)=>q.id=i+1);
 CATS[11]='قدرات ذهنية ورياضيات';ICON[11]='🧮';
+const BASE=QS.map(q=>JSON.stringify({q:q.q,a:q.a,d:q.d,note:q.note||''}));
+try{const ov=JSON.parse(localStorage.getItem('qz_admin_edits_v1')||'{}');Object.keys(ov).forEach(k=>{const q=QS[k-1],o=ov[k];if(q&&o){q.q=o.q;q.a=o.a;q.d=o.d;if(o.note)q.note=o.note;else delete q.note}})}catch(e){}
 let cfg={n:10,all:false,field:0,mode:'mcq',from:1,to:QS.length,lvl:'easy'}, quiz=[], idx=0, score={mcq:[0,0],txt:[0,0]}, missed=[];
 
 function chips(parent,items,isOn,onPick,cls){
@@ -264,7 +284,7 @@ function setup(){
   const pr=el('button','btn ghost','🖨️ طباعة الأسئلة');pr.style.marginTop='10px';
   pr.onclick=()=>{const L=pick();if(L){if(!isMath())L.sort((x,y)=>x.id-y.id);printFlow(L)}};
   app.append(go,st,pr);
-  const ft=el('footer');ft.append('© ',el('span',0,'جميع الحقوق محفوظة'),' — Abdalrahman Hamed');app.append(ft);
+  const ft=el('footer');const al=el('span','adminlink','Abdalrahman Hamed');al.onclick=openAdmin;ft.append('© ',el('span',0,'جميع الحقوق محفوظة'),' — ',al);app.append(ft);
 }
 
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
@@ -335,8 +355,8 @@ function printHTML(html,hint){
   fr.srcdoc=html;document.body.append(fr);
   if(hint)toast('📄 في نافذة الطباعة اختار «حفظ كـ PDF» (Save as PDF) وبعدها دوس حفظ');
 }
-function saveFile(name,content,mime){
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+content],{type:mime+';charset=utf-8'}));
+function saveFile(name,content,mime,bom){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([(bom===false?'':'\ufeff')+content],{type:mime+';charset=utf-8'}));
   a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},800);
 }
 function downloadMenu(html,txt){
@@ -522,6 +542,171 @@ function result(){
   }
   const a=el('button','btn','🔁 تحدي جديد');a.onclick=setup;app.append(a);
 }
+/* ===== لوحة الأدمن ===== */
+const ADM={salt:'dc06e1b87d172a1cc21846b646e1300d',it:200000,h:'74a5ba5864e7e566ca1d8ce5e94bd4656b73a98b35e398e4e8ed9a2f798e4f56'};
+let admOK=false,admFail=0,admLock=0,admFilter='',admLimit=40;
+const OV_KEY='qz_admin_edits_v1';
+function admHex(b){return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function admHash(u,p){
+  const enc=new TextEncoder();
+  const key=await crypto.subtle.importKey('raw',enc.encode(u.trim().toLowerCase()+':'+p.trim().replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d))),'PBKDF2',false,['deriveBits']);
+  const salt=new Uint8Array(ADM.salt.match(/../g).map(x=>parseInt(x,16)));
+  return admHex(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:ADM.it,hash:'SHA-256'},key,256));
+}
+const sig=q=>JSON.stringify({q:q.q,a:q.a,d:q.d,note:q.note||''});
+const isMod=q=>sig(q)!==BASE[q.id-1];
+const modCount=()=>QS.filter(isMod).length;
+function saveLocal(){
+  try{const ov={};QS.forEach(q=>{if(isMod(q))ov[q.id]={q:q.q,a:q.a,d:q.d,note:q.note||''}});localStorage.setItem(OV_KEY,JSON.stringify(ov))}catch(e){}
+}
+function admData(){
+  const cats=Object.assign({},CATS);delete cats[11];
+  return {cats,qs:QS.map(q=>{const o={q:q.q,a:q.a,c:q.c,d:q.d};if(q.note)o.note=q.note;return o})};
+}
+function injectData(src,data){
+  const k=src.indexOf('const DATA='),e=src.indexOf(';\nconst CATS=DATA.cats');
+  if(k<0||e<0)throw new Error('تعذر العثور على مكان الأسئلة داخل الملف');
+  return src.slice(0,k)+'const DATA='+JSON.stringify(data).replace(/</g,'\\u003c')+src.slice(e);
+}
+function utf8ToB64(str){const b=new TextEncoder().encode(str);let s='';for(let i=0;i<b.length;i+=0x8000)s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(s)}
+function b64ToUtf8(b64){const s=atob(b64),b=new Uint8Array(s.length);for(let i=0;i<s.length;i++)b[i]=s.charCodeAt(i);return new TextDecoder().decode(b)}
+function admClose(){const o=document.querySelector('.adm');if(o)o.remove()}
+function openAdmin(){
+  admClose();
+  const ov=el('div','adm');document.body.append(ov);
+  admOK?admEditor(ov):admLogin(ov);
+}
+function admLogin(ov){
+  ov.replaceChildren();
+  const box=el('div','admbox');
+  box.append(el('h2',0,'🔐 دخول الأدمن'));
+  const u=el('input','ain');u.placeholder='اسم المستخدم';u.autocomplete='username';u.setAttribute('autocapitalize','off');
+  const p=el('input','ain');p.type='password';p.placeholder='كلمة المرور';p.autocomplete='current-password';
+  const msg=el('div','amsg');
+  const go=el('button','btn','دخول'),cl=el('button','btn ghost','إغلاق');cl.style.marginTop='8px';
+  const run=async()=>{
+    msg.textContent='';
+    if(Date.now()<admLock){msg.textContent='محاولات كتير غلط. استنى '+Math.ceil((admLock-Date.now())/1000)+' ثانية.';return}
+    if(!(window.crypto&&crypto.subtle)){msg.textContent='المتصفح ده مش بيدعم التشفير المطلوب. افتح الموقع من رابط https.';return}
+    go.disabled=true;go.textContent='جاري التحقق...';
+    let ok=false;try{ok=(await admHash(u.value,p.value))===ADM.h}catch(e){}
+    go.disabled=false;go.textContent='دخول';
+    if(ok){admOK=true;admFail=0;admEditor(ov)}
+    else{admFail++;if(admFail>=5){admLock=Date.now()+60000;admFail=0}msg.textContent='اسم المستخدم أو كلمة المرور غلط'}
+  };
+  go.onclick=run;p.onkeydown=e=>{if(e.key==='Enter')run()};cl.onclick=admClose;
+  box.append(u,p,go,cl,msg);ov.append(box);setTimeout(()=>u.focus(),50);
+}
+function admEditor(ov){
+  ov.replaceChildren();
+  const top=el('div','admtop');
+  const mc=el('span','badge','');
+  const pub=el('button','btn','🚀 نشر'),lo=el('button','btn ghost','خروج'),cl=el('button','btn ghost','✕');
+  top.append(el('b',0,'✏️ لوحة التعديل'),mc,pub,lo,cl);
+  pub.onclick=admPublish;
+  lo.onclick=()=>{admOK=false;admLogin(ov)};cl.onclick=admClose;
+  const sbar=el('div','admbar');
+  const s=el('input','ain');s.placeholder='ابحث برقم السؤال أو بنص من السؤال/الإجابة';s.value=admFilter;
+  sbar.append(s);
+  const list=el('div','admlist');
+  const body=el('div','admbody');body.append(sbar,list);
+  ov.append(top,body);
+  const render=()=>{
+    mc.textContent='معدَّل: '+modCount();
+    const f=s.value.trim();admFilter=f;
+    let arr=QS;
+    if(/^\d+$/.test(f))arr=QS.filter(q=>String(q.id)===f);
+    else if(f){const n=nrm(f);arr=QS.filter(q=>nrm(q.q).includes(n)||nrm(q.a).includes(n))}
+    list.replaceChildren();
+    arr.slice(0,admLimit).forEach(q=>{
+      const r=el('button','admrow'+(isMod(q)?' mod':''));
+      r.append(el('b',0,'#'+q.id),el('span',0,' '+(isMod(q)?'✎ ':'')+q.q.slice(0,90)),el('small',0,'← '+q.a.slice(0,50)));
+      r.onclick=()=>admEdit(ov,q.id);list.append(r);
+    });
+    if(arr.length>admLimit){const m=el('button','btn ghost','عرض المزيد ('+(arr.length-admLimit)+')');m.onclick=()=>{admLimit+=40;render()};list.append(m)}
+    if(!arr.length)list.append(el('div','sub','مفيش نتائج'));
+  };
+  s.oninput=()=>{admLimit=40;render()};
+  render();
+}
+function admEdit(ov,id){
+  ov.replaceChildren();
+  const q=QS[id-1];
+  const top=el('div','admtop');top.append(el('b',0,'تعديل سؤال #'+id));
+  const back=el('button','btn ghost','↩ القائمة');back.onclick=()=>admEditor(ov);top.append(back);
+  const body=el('div','admbody');
+  const mk=(label,node)=>{const w=el('label','admf');w.append(el('span',0,label),node);body.append(w);return node};
+  const tq=mk('السؤال',el('textarea','ain'));tq.value=q.q;tq.rows=3;
+  const ia=mk('الإجابة الصحيحة',el('input','ain'));ia.value=q.a;
+  const ds=[0,1,2].map(i=>{const x=mk('اختيار غلط '+(i+1),el('input','ain'));x.value=q.d[i]||'';return x});
+  const tn=mk('الملاحظة (سيبها فاضية لو مفيش ملاحظة)',el('textarea','ain'));tn.value=(q.note||'').replace(/^ملاحظة:\s*/,'');tn.rows=4;
+  const msg=el('div','amsg');
+  const sv=el('button','btn','💾 حفظ التعديل'),rs=el('button','btn ghost','↺ رجوع للنسخة الأصلية');rs.style.marginTop='8px';
+  sv.onclick=()=>{
+    const a=ia.value.trim(),d=ds.map(x=>x.value.trim()),qq=tq.value.trim();
+    if(!qq||!a){msg.textContent='السؤال والإجابة مطلوبين';return}
+    if(d.some(x=>!x)||new Set([...d,a]).size!==4){msg.textContent='لازم 3 اختيارات غلط مختلفة ومش زي الإجابة الصحيحة';return}
+    q.q=qq;q.a=a;q.d=d;
+    const n=tn.value.trim();if(n)q.note='ملاحظة: '+n.replace(/^ملاحظة:\s*/,'');else delete q.note;
+    saveLocal();msg.className='amsg ok';msg.textContent='✓ اتحفظ (محفوظ على الجهاز ده، دوس «نشر» من القائمة عشان يظهر للكل)';
+  };
+  rs.onclick=()=>{
+    if(!confirm('ترجع السؤال ده للنسخة المنشورة؟'))return;
+    const b=JSON.parse(BASE[id-1]);q.q=b.q;q.a=b.a;q.d=b.d;if(b.note)q.note=b.note;else delete q.note;saveLocal();admEdit(ov,id);
+  };
+  body.append(sv,rs,msg);ov.append(top,body);
+}
+function admPublish(){
+  const ov=el('div','dm');const sh_=el('div','shx');
+  sh_.append(el('h2',0,'🚀 نشر التعديلات'),el('div','sub','عدد الأسئلة المعدّلة: '+modCount()));
+  const dl=el('button','btn ghost','⬇️ تنزيل index.html محدّث (ترفعه بنفسك)');
+  const st=el('div','amsg');
+  dl.onclick=async()=>{
+    st.className='amsg';st.textContent='جاري التجهيز...';
+    try{
+      const r=await fetch(location.href.split('#')[0].split('?')[0],{cache:'no-store'});
+      if(!r.ok)throw new Error('تعذر قراءة ملف الموقع ('+r.status+')');
+      const out=injectData(await r.text(),admData());
+      saveFile('index.html',out,'text/html',false);st.className='amsg ok';st.textContent='✓ اتنزّل index.html. ارفعه على GitHub/Netlify بنفس الاسم.';
+    }catch(e){st.textContent='تعذر التنزيل: '+e.message+' (لو الموقع مفتوح من ملف على جهازك، جرّب النشر عبر GitHub أو افتح الموقع من رابطه)'}
+  };
+  const f=el('div','admgh');
+  f.append(el('h2',0,'النشر المباشر على GitHub'));
+  let saved={};try{saved=JSON.parse(localStorage.getItem('qz_admin_gh')||'{}')}catch(e){}
+  const repo=el('input','ain');repo.placeholder='المستودع: اسم-المستخدم/اسم-الريبو';repo.value=saved.repo||'';
+  const br=el('input','ain');br.placeholder='الفرع (main)';br.value=saved.br||'main';
+  const pa=el('input','ain');pa.placeholder='مسار الملف (index.html)';pa.value=saved.pa||'index.html';
+  const tk=el('input','ain');tk.type='password';tk.placeholder='GitHub Token (بيتمسح بعد النشر ومش بيتحفظ)';
+  const go=el('button','btn','🚀 انشر دلوقتي');
+  go.onclick=async()=>{
+    st.className='amsg';
+    if(!/^[\w.-]+\/[\w.-]+$/.test(repo.value.trim())||!tk.value.trim()){st.textContent='اكتب المستودع بالشكل owner/repo وحط الـ Token';return}
+    go.disabled=true;st.textContent='جاري النشر...';
+    try{
+      await ghPublish(repo.value.trim(),br.value.trim()||'main',pa.value.trim()||'index.html',tk.value.trim());
+      try{localStorage.setItem('qz_admin_gh',JSON.stringify({repo:repo.value.trim(),br:br.value.trim(),pa:pa.value.trim()}))}catch(e){}
+      tk.value='';st.className='amsg ok';st.textContent='✓ اتنشر! الموقع هيتحدّث خلال دقيقة أو اتنين (حدّث الصفحة بالقوة).';
+    }catch(e){st.textContent='فشل النشر: '+e.message}
+    go.disabled=false;
+  };
+  f.append(repo,br,pa,tk,go);
+  const c=el('button','btn ghost','إغلاق');c.onclick=()=>ov.remove();
+  sh_.append(dl,f,st,c);ov.append(sh_);document.body.append(ov);
+}
+async function ghPublish(repo,branch,path,token){
+  const api='https://api.github.com/repos/'+repo+'/contents/'+path.split('/').map(encodeURIComponent).join('/');
+  const hdr={'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'};
+  let r=await fetch(api+'?ref='+encodeURIComponent(branch),{headers:hdr});
+  if(r.status===401||r.status===403)throw new Error('الـ Token مش صالح أو مالوش صلاحية على المستودع ('+r.status+')');
+  if(!r.ok)throw new Error('تعذر قراءة الملف من GitHub ('+r.status+')');
+  const j=await r.json();let src;
+  if(j.content&&j.encoding==='base64')src=b64ToUtf8(j.content.replace(/\s/g,''));
+  else{const r2=await fetch(api+'?ref='+encodeURIComponent(branch),{headers:Object.assign({},hdr,{'Accept':'application/vnd.github.raw+json'})});if(!r2.ok)throw new Error('تعذر قراءة الملف ('+r2.status+')');src=await r2.text()}
+  const out=injectData(src,admData());
+  r=await fetch(api,{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},hdr),body:JSON.stringify({message:'تحديث الأسئلة من لوحة الأدمن',content:utf8ToB64(out),sha:j.sha,branch})});
+  if(!r.ok){let m='';try{m=(await r.json()).message}catch(e){}throw new Error('فشل الرفع ('+r.status+') '+m)}
+}
+
 setup();
 </script>
 </body>
